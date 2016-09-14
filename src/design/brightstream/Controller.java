@@ -1,6 +1,8 @@
 package design.brightstream;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Controller {
 
@@ -23,17 +25,30 @@ public class Controller {
 				currentUrl = urls.substring(lastIndex + 1).trim();
 				if (lastIndex >= 0) {
 					urlList.add(currentUrl);
-						urls = urls.substring(0, lastIndex).trim();
+					urls = urls.substring(0, lastIndex).trim();
 				}
 			}
-			
+
 			for (int ii = urlList.size() - 1; ii >= 0; ii--) {
-				@SuppressWarnings("unused")
-				Track t = new Track(urlList.get(ii));
+				urlList.add(ii, checkInput(urlList.get(ii)));
+				
+				if (urlList.get(ii).isEmpty()) {
+					System.out.println("Bad input!\n");
+				} else {
+					@SuppressWarnings("unused")
+					Track t = new Track(urlList.get(ii));
+				}
 			}
 		} else {
 			System.out.println("Redirect to Single Track Mode...");
-			singleTrackMode(urls);
+			
+			urls = checkInput(urls);
+			
+			if (urls.isEmpty()) {
+				System.out.println("Bad input!\n");
+			} else {
+				singleTrackMode(urls);
+			}
 		}
 	}
 
@@ -43,5 +58,18 @@ public class Controller {
 
 	public static void defaultMode(String input) {
 		System.out.println("Invalid input '" + input + "', try again.\n");
+	}
+
+	public static String checkInput(String input) {
+
+		Pattern p = Pattern.compile("((https:\\/\\/soundcloud\\.com)((?:\\/[\\w\\.\\-]+)+)((?:\\/[\\w\\.\\-]+)+))",
+				Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Matcher m = p.matcher(input);
+		
+		if (m.find()) {
+			return m.group(1).toString();
+		}
+
+		return "";
 	}
 }

@@ -13,6 +13,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
+import java.util.Calendar;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,6 +23,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.mpatric.mp3agic.ID3v1;
@@ -37,9 +39,9 @@ public class Track {
 
 	private String trackURL = "", artURL = "", streamURL = "", status = "", location = "", trackName = "",
 			trackArtist = "", trackGenre = "", trackYear = "";
-	
+
 	Random r = new Random();
-	
+
 	private final float localObjectId = r.nextFloat();
 
 	private long timeS, timeE;
@@ -61,7 +63,7 @@ public class Track {
 		getArt();
 		getAudio();
 		enactMetaDraw();
-		
+
 		gc();
 
 		timeE = System.currentTimeMillis();
@@ -104,23 +106,56 @@ public class Track {
 				for (String line; (line = reader.readLine()) != null;) {
 					pageContent += line;
 				}
+			} catch (Exception e) {
+				Document doc = Jsoup.connect(trackURL).get();
+				Elements links = doc.getAllElements();
+				Elements media = links.select("img[itemprop]");
+				artURL = media.attr("src");
 			}
 
-			JSONObject obj = (JSONObject) new JSONParser().parse(pageContent);
-			JSONObject objUser = (JSONObject) new JSONParser().parse((obj.get("user").toString()));
+			if (pageContent.isEmpty()) {
+				System.out.print("403 - Forbidden :: ");
+			} else {
+				System.out.print(status + " :: ");
+			}
 
 			System.out.print("Downloading meta... ");
 
-			artURL = (String) obj.get("artwork_url");
-			streamURL = (String) obj.get("stream_url");
-			trackGenre = (String) obj.get("genre");
-			trackName = (String) obj.get("title");
-			trackArtist = (String) objUser.get("username");
-
 			try {
-				trackYear = Long.toString((long) obj.get("release_year"));
+				JSONObject obj = null, objUser = null;
+
+				if (!pageContent.isEmpty()) {
+					obj = (JSONObject) new JSONParser().parse(pageContent);
+					objUser = (JSONObject) new JSONParser().parse((obj.get("user").toString()));
+
+					artURL = (String) obj.get("artwork_url");
+					streamURL = (String) obj.get("stream_url");
+					trackGenre = (String) obj.get("genre");
+					trackName = (String) obj.get("title");
+					trackArtist = (String) objUser.get("username");
+
+					try {
+						trackYear = Long.toString((long) obj.get("release_year"));
+					} catch (Exception e) {
+						System.out.print("Defaulting trackYear... ");
+						trackYear = Calendar.getInstance().get(Calendar.YEAR) + "";
+					}
+				} else {
+					Document doc = Jsoup.connect(trackURL).get();
+					Elements links = doc.getAllElements();
+					Elements name = links.select("a[itemprop]");
+					trackName = name.text();
+					Elements artist = links.select("h1[itemprop]");
+					artist = artist.select("a[href]");
+					Element artistE = artist.last();
+					trackArtist = artistE.text();
+
+					System.out.print("Defaulting trackYear... ");
+					trackYear = Calendar.getInstance().get(Calendar.YEAR) + "";
+				}
+
 			} catch (Exception e) {
-				System.out.print("obj: Could not find trackYear! ");
+				e.printStackTrace();
 			}
 
 			Matcher m = Pattern.compile("(large)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(artURL);
