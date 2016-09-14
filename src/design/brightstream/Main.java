@@ -1,34 +1,47 @@
 package design.brightstream;
 
-import java.io.IOException;
 import java.util.Scanner;
-
-import com.mpatric.mp3agic.InvalidDataException;
-import com.mpatric.mp3agic.NotSupportedException;
-import com.mpatric.mp3agic.UnsupportedTagException;
 
 public class Main {
 
-	static String url = "";
 	public static final String OAuth2 = "fb6c65015f940bc6f475451fae16b1a9";
 
 	public static void main(String[] args) {
 
-		System.out.print("Enter a url: ");
-
 		Scanner sc = new Scanner(System.in);
-		url = sc.next();
-		sc.close();
-
-		Track t = new Track(url);
-		t.getArt();
-		t.getAudio();
 		
-		try {
-			t.enactMetaDraw();
-		} catch (UnsupportedTagException | InvalidDataException | NotSupportedException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		boolean runningMenu = true;
+		String mode = "";
+		
+		while(runningMenu) {
+			
+			System.out.print("Choose a mode ([s]ingle track, [a]rray of tracks, [p]laylist of tracks, [e]xit): ");
+			mode = sc.nextLine();
+			
+			switch(mode) {
+			case "s":
+				System.out.print("Single Track Mode - Enter track url: ");
+				Controller.singleTrackMode(sc.nextLine());
+				break;
+			case "a":
+				System.out.print("Array of Tracks Mode - Enter track urls seperated by asterisks: ");
+				Controller.arrayTracksMode(sc.nextLine());
+				break;
+			case "p":
+				System.out.print("Warning: ");
+				Controller.playlistTracksMode();
+				break;
+			case "e":
+				System.out.println("Exit.");
+				runningMenu = false;
+				break;
+			default:
+				Controller.defaultMode(mode);
+				break;
+			
+			}
 		}
+		
+		sc.close();
 	}
 }

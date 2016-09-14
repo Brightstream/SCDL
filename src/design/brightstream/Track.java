@@ -13,6 +13,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,12 +35,20 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 
 public class Track {
 
-	private String trackURL = "", artURL = "", streamURL = "", status = "", location = "",
-			trackName = "", trackArtist = "", trackGenre = "", trackYear = "";
+	private String trackURL = "", artURL = "", streamURL = "", status = "", location = "", trackName = "",
+			trackArtist = "", trackGenre = "", trackYear = "";
+	
+	Random r = new Random();
+	
+	private final float localObjectId = r.nextFloat();
+
+	private long timeS, timeE;
 
 	private int trackID = 0;
 
 	public Track(String url) {
+		timeS = System.currentTimeMillis();
+
 		trackURL = url;
 
 		try {
@@ -48,6 +57,16 @@ public class Track {
 		} catch (IOException | ParseException e) {
 			e.printStackTrace();
 		}
+
+		getArt();
+		getAudio();
+		enactMetaDraw();
+		
+		gc();
+
+		timeE = System.currentTimeMillis();
+
+		System.out.println("Done! (" + (timeE - timeS) + "ms)\n");
 	}
 
 	private boolean initialize() throws UnsupportedEncodingException, IOException, ParseException {
@@ -70,9 +89,9 @@ public class Track {
 			location = (String) obj.get("location");
 
 			Matcher m = Pattern.compile(".*?" + "(\\d+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(location);
+
 			if (m.find())
 				trackID = Integer.parseInt(m.group(1).toString());
-
 		}
 
 		if (artURL.equals("")) {
@@ -90,22 +109,22 @@ public class Track {
 			JSONObject obj = (JSONObject) new JSONParser().parse(pageContent);
 			JSONObject objUser = (JSONObject) new JSONParser().parse((obj.get("user").toString()));
 
-			System.out.println("Downloading meta...");
-			
+			System.out.print("Downloading meta... ");
+
 			artURL = (String) obj.get("artwork_url");
 			streamURL = (String) obj.get("stream_url");
 			trackGenre = (String) obj.get("genre");
 			trackName = (String) obj.get("title");
 			trackArtist = (String) objUser.get("username");
-			try{
+
+			try {
 				trackYear = Long.toString((long) obj.get("release_year"));
-			} catch(Exception e) {
-				System.out.println("obj: Could not find trackYear!");
+			} catch (Exception e) {
+				System.out.print("obj: Could not find trackYear! ");
 			}
 
 			Matcher m = Pattern.compile("(large)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(artURL);
 			artURL = m.replaceAll("t500x500");
-
 		}
 
 		if (status.equals("302 - Found")) {
@@ -113,7 +132,6 @@ public class Track {
 		} else {
 			return false;
 		}
-
 	}
 
 	public int getTrackID() {
@@ -121,6 +139,7 @@ public class Track {
 	}
 
 	public String getAttribute(String attribute) {
+
 		switch (attribute) {
 		case "trackURL":
 			return trackURL;
@@ -143,18 +162,16 @@ public class Track {
 		default:
 			return null;
 		}
-
 	}
 
 	public boolean getArt() {
 
-		System.out.println("Downloading graphic...");
+		System.out.print("graphic... ");
 
 		try {
 			URL url = new URL(artURL);
 			InputStream in = new BufferedInputStream(url.openStream());
-			OutputStream out = new BufferedOutputStream(
-					new FileOutputStream("~0.temp"));
+			OutputStream out = new BufferedOutputStream(new FileOutputStream("~0." + localObjectId + ".temp"));
 
 			for (int i; (i = in.read()) != -1;) {
 				out.write(i);
@@ -162,9 +179,9 @@ public class Track {
 
 			in.close();
 			out.close();
+
 			return true;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return false;
 		}
@@ -174,7 +191,7 @@ public class Track {
 
 		try {
 
-			System.out.println("Downloading audio...");
+			System.out.println("audio...");
 
 			URL url;
 			url = new URL("http://soundcloud.r3d-soft.de/download.php?soundcloud=" + trackURL);
@@ -187,25 +204,23 @@ public class Track {
 				}
 			}
 
-			//
-
 			Document doc = Jsoup.parse(pageContent);
 			Elements content = doc.getElementsByAttributeValue("name", "dlUrl");
 			String downloadURL = content.attr("value");
 
-			//
-
 			URLConnection conn = new URL(downloadURL).openConnection();
 			InputStream is = conn.getInputStream();
 
-			OutputStream outstream = new FileOutputStream(new File("~1.temp"));
+			OutputStream outstream = new FileOutputStream(new File("~1." + localObjectId + ".temp"));
+
 			byte[] buffer = new byte[4096];
 			int len;
+
 			while ((len = is.read(buffer)) > 0) {
 				outstream.write(buffer, 0, len);
 			}
-			outstream.close();
 
+			outstream.close();
 			return true;
 
 		} catch (IOException e) {
@@ -214,47 +229,63 @@ public class Track {
 		}
 	}
 
-	public void enactMetaDraw()
-			throws UnsupportedTagException, InvalidDataException, IOException, NotSupportedException {
+	public void enactMetaDraw() {
 
-		System.out.println("Applying meta and graphic...");
+		System.out.print("Compiling... ");
 
-		Mp3File mp3file = new Mp3File("~1.temp");
-		ID3v1 id3v1Tag;
-		if (mp3file.hasId3v1Tag()) {
-			id3v1Tag = mp3file.getId3v1Tag();
-		} else {
-			// mp3 does not have an ID3v1 tag, let's create one..
-			id3v1Tag = new ID3v1Tag();
-			mp3file.setId3v1Tag(id3v1Tag);
+		try {
+			Mp3File mp3file;
+
+			mp3file = new Mp3File("~1." + localObjectId + ".temp");
+
+			ID3v1 id3v1Tag;
+
+			if (mp3file.hasId3v1Tag()) {
+				id3v1Tag = mp3file.getId3v1Tag();
+			} else {
+				id3v1Tag = new ID3v1Tag();
+				mp3file.setId3v1Tag(id3v1Tag);
+			}
+
+			id3v1Tag.setArtist(trackArtist);
+			id3v1Tag.setTitle(trackName);
+			id3v1Tag.setAlbum(trackName + " - Single");
+			id3v1Tag.setGenre(52);
+			id3v1Tag.setYear(trackYear);
+
+			ID3v2 id3v2Tag;
+
+			if (mp3file.hasId3v2Tag()) {
+				id3v2Tag = mp3file.getId3v2Tag();
+			} else {
+				id3v2Tag = new ID3v24Tag();
+				mp3file.setId3v2Tag(id3v2Tag);
+			}
+
+			id3v2Tag.setArtist(trackArtist);
+			id3v2Tag.setTitle(trackName);
+			id3v2Tag.setAlbum(trackName + " - Single");
+			id3v2Tag.setGenre(52);
+			id3v2Tag.setYear(trackYear);
+			id3v2Tag.setOriginalArtist(trackArtist);
+			id3v2Tag.setAlbumArtist(trackArtist);
+
+			File f = new File("~0." + localObjectId + ".temp");
+			byte[] b = Files.readAllBytes(f.toPath());
+
+			id3v2Tag.setAlbumImage(b, "image/ jpeg");
+
+			mp3file.save(trackArtist + " - " + trackName + ".mp3");
+
+		} catch (UnsupportedTagException | InvalidDataException | IOException | NotSupportedException e) {
+			e.printStackTrace();
 		}
-		id3v1Tag.setArtist(trackArtist);
-		id3v1Tag.setTitle(trackName);
-		id3v1Tag.setAlbum(trackName + " - Single");
-		id3v1Tag.setGenre(52);
-		id3v1Tag.setYear(trackYear);
+	}
 
-		ID3v2 id3v2Tag;
-		if (mp3file.hasId3v2Tag()) {
-			id3v2Tag = mp3file.getId3v2Tag();
-		} else {
-			id3v2Tag = new ID3v24Tag();
-			mp3file.setId3v2Tag(id3v2Tag);
-		}
-		id3v2Tag.setArtist(trackArtist);
-		id3v2Tag.setTitle(trackName);
-		id3v2Tag.setAlbum(trackName + " - Single");
-		id3v2Tag.setGenre(52);
-		id3v2Tag.setYear(trackYear);
-		id3v2Tag.setOriginalArtist(trackArtist);
-		id3v2Tag.setAlbumArtist(trackArtist);
-		
-		File f = new File("~0.temp");
-		byte[] b = Files.readAllBytes(f.toPath());
-		
-		id3v2Tag.setAlbumImage(b, "image/ jpeg");
-
-		mp3file.save("a.mp3");
-
+	public void gc() {
+		File f = new File("~0." + localObjectId + ".temp");
+		f.delete();
+		f = new File("~1." + localObjectId + ".temp");
+		f.delete();
 	}
 }
