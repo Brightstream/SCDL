@@ -44,31 +44,89 @@ public class Track {
 
 	private final float localObjectId = r.nextFloat();
 
-	private long timeS, timeE;
-
 	private int trackID = 0;
 
 	public Track(String url) {
-		timeS = System.currentTimeMillis();
+		if (url.isEmpty()) {
+			System.out.println("Bad input!\n");
+		} else {
+			trackURL = url;
 
-		trackURL = url;
+			try {
+				if (!initialize())
+					System.out.println("Error initializing!");
+			} catch (IOException | ParseException e) {
+			}
+
+			getArt();
+			getAudio();
+			enactMetaDraw();
+			gc();
+		}
+	}
+
+	public Track(String url, String arg) {
+		url = Format.checkInput(url);
+
+		if (url.isEmpty()) {
+			System.out.println("Bad input!\n");
+		} else {
+			trackURL = url;
+
+			try {
+				if (!initialize())
+					System.out.println("Error initializing!");
+			} catch (IOException | ParseException e) {
+			}
+
+			switch (arg) {
+			case "audioOnly":
+				getAudio();
+				rename();
+				break;
+			case "artOnly":
+				getArt();
+				rename();
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	public Track(int id, String permalink) {
+
+		trackID = id;
+
+		trackURL = permalink;
 
 		try {
-			if (!initialize())
-				System.out.println("Error initializing!");
+			initialize();
 		} catch (IOException | ParseException e) {
-			e.printStackTrace();
 		}
 
 		getArt();
 		getAudio();
 		enactMetaDraw();
-
 		gc();
+	}
 
-		timeE = System.currentTimeMillis();
+	public Track(int id, String albumArtUrl, String albumTitle, String albumArtist, int trackNumber,
+			int trackNumberTotal, String permalink) {
+		trackID = id;
+		trackURL = permalink;
 
-		System.out.println("Done! (" + (timeE - timeS) + "ms)\n");
+		try {
+			initialize();
+		} catch (IOException | ParseException e) {
+		}
+
+		artURL = albumArtUrl;
+
+		getArt();
+		getAudio();
+		enactMetaDraw(albumTitle, albumArtist, trackNumber, trackNumberTotal);
+		gc();
 	}
 
 	private boolean initialize() throws UnsupportedEncodingException, IOException, ParseException {
@@ -113,14 +171,6 @@ public class Track {
 				artURL = media.attr("src");
 			}
 
-			if (pageContent.isEmpty()) {
-				System.out.print("403 - Forbidden :: ");
-			} else {
-				System.out.print(status + " :: ");
-			}
-
-			System.out.print("Downloading meta... ");
-
 			try {
 				JSONObject obj = null, objUser = null;
 
@@ -137,7 +187,6 @@ public class Track {
 					try {
 						trackYear = Long.toString((long) obj.get("release_year"));
 					} catch (Exception e) {
-						System.out.print("Defaulting trackYear... ");
 						trackYear = Calendar.getInstance().get(Calendar.YEAR) + "";
 					}
 				} else {
@@ -149,17 +198,17 @@ public class Track {
 					artist = artist.select("a[href]");
 					Element artistE = artist.last();
 					trackArtist = artistE.text();
-
-					System.out.print("Defaulting trackYear... ");
 					trackYear = Calendar.getInstance().get(Calendar.YEAR) + "";
 				}
 
 			} catch (Exception e) {
-				e.printStackTrace();
 			}
 
-			Matcher m = Pattern.compile("(large)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(artURL);
-			artURL = m.replaceAll("t500x500");
+			try {
+				Matcher m = Pattern.compile("(large)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(artURL);
+				artURL = m.replaceAll("t500x500");
+			} catch (Exception e) {
+			}
 		}
 
 		if (status.equals("302 - Found")) {
@@ -201,8 +250,6 @@ public class Track {
 
 	public boolean getArt() {
 
-		System.out.print("graphic... ");
-
 		try {
 			URL url = new URL(artURL);
 			InputStream in = new BufferedInputStream(url.openStream());
@@ -217,19 +264,15 @@ public class Track {
 
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
 			return false;
 		}
 	}
 
 	public boolean getAudio() {
-
 		try {
-
-			System.out.println("audio...");
-
 			URL url;
-			url = new URL("http://soundcloud.r3d-soft.de/download.php?soundcloud=" + trackURL);
+			url = new URL(
+					"http://soundcloud.r3d-soft.de/download.php?soundcloud=" + trackURL.replace("http://", "https://"));
 
 			String pageContent = "";
 
@@ -264,10 +307,7 @@ public class Track {
 		}
 	}
 
-	public void enactMetaDraw() {
-
-		System.out.print("Compiling... ");
-
+	public boolean enactMetaDraw() {
 		try {
 			Mp3File mp3file;
 
@@ -287,6 +327,7 @@ public class Track {
 			id3v1Tag.setAlbum(trackName + " - Single");
 			id3v1Tag.setGenre(52);
 			id3v1Tag.setYear(trackYear);
+			id3v1Tag.setTrack("1/1");
 
 			ID3v2 id3v2Tag;
 
@@ -304,16 +345,92 @@ public class Track {
 			id3v2Tag.setYear(trackYear);
 			id3v2Tag.setOriginalArtist(trackArtist);
 			id3v2Tag.setAlbumArtist(trackArtist);
+			id3v2Tag.setTrack("1/1");
+			id3v2Tag.setPartOfSet("1/1");
 
-			File f = new File("~0." + localObjectId + ".temp");
-			byte[] b = Files.readAllBytes(f.toPath());
+			try {
+				File f = new File("~0." + localObjectId + ".temp");
+				byte[] b = Files.readAllBytes(f.toPath());
 
-			id3v2Tag.setAlbumImage(b, "image/ jpeg");
+				id3v2Tag.setAlbumImage(b, "image/ jpeg");
+			} catch (Exception e) {
+			}
 
-			mp3file.save(trackArtist + " - " + trackName + ".mp3");
+			mp3file.save(Format.safeForDir(trackArtist) + " - " + Format.safeForDir(trackName) + ".mp3");
 
 		} catch (UnsupportedTagException | InvalidDataException | IOException | NotSupportedException e) {
-			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+
+	public boolean enactMetaDraw(String albumTitle, String albumArtist, int trackNumber, int trackNumberTotal) {
+		try {
+			Mp3File mp3file;
+
+			mp3file = new Mp3File("~1." + localObjectId + ".temp");
+
+			ID3v1 id3v1Tag;
+
+			if (mp3file.hasId3v1Tag()) {
+				id3v1Tag = mp3file.getId3v1Tag();
+			} else {
+				id3v1Tag = new ID3v1Tag();
+				mp3file.setId3v1Tag(id3v1Tag);
+			}
+
+			id3v1Tag.setArtist(trackArtist);
+			id3v1Tag.setTitle(trackName);
+			id3v1Tag.setAlbum(albumTitle);
+			id3v1Tag.setGenre(52);
+			id3v1Tag.setYear(trackYear);
+			id3v1Tag.setTrack(trackNumber + "/" + trackNumberTotal);
+
+			ID3v2 id3v2Tag;
+
+			if (mp3file.hasId3v2Tag()) {
+				id3v2Tag = mp3file.getId3v2Tag();
+			} else {
+				id3v2Tag = new ID3v24Tag();
+				mp3file.setId3v2Tag(id3v2Tag);
+			}
+
+			id3v2Tag.setArtist(trackArtist);
+			id3v2Tag.setTitle(trackName);
+			id3v2Tag.setAlbum(albumTitle);
+			id3v2Tag.setGenre(52);
+			id3v2Tag.setYear(trackYear);
+			id3v2Tag.setOriginalArtist(trackArtist);
+			id3v2Tag.setAlbumArtist(albumArtist);
+			id3v2Tag.setTrack(trackNumber + "/" + trackNumberTotal);
+			id3v2Tag.setPartOfSet("1/1");
+
+			try {
+				File f = new File("~0." + localObjectId + ".temp");
+				byte[] b = Files.readAllBytes(f.toPath());
+
+				id3v2Tag.setAlbumImage(b, "image/ jpeg");
+			} catch (Exception e) {
+			}
+			// trackArtist + " - " + trackName +
+			mp3file.save(Format.safeForDir(trackArtist) + " - " + Format.safeForDir(trackName) + ".mp3");
+
+		} catch (UnsupportedTagException | InvalidDataException | IOException | NotSupportedException e) {
+			return false;
+		}
+		return true;
+	}
+
+	public void rename() {
+		try {
+			File f = new File("~1." + localObjectId + ".temp");
+			f.renameTo(new File(trackArtist + " - " + trackName + ".mp3"));
+		} catch (Exception e) {
+		}
+		try {
+			File f = new File("~0." + localObjectId + ".temp");
+			f.renameTo(new File(trackArtist + " - " + trackName + ".jpg"));
+		} catch (Exception e) {
 		}
 	}
 
