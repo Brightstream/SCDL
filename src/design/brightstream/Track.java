@@ -302,7 +302,6 @@ public class Track {
 			return true;
 
 		} catch (IOException e) {
-			e.printStackTrace();
 			return false;
 		}
 	}

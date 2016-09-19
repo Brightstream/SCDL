@@ -16,46 +16,46 @@ public class Controller {
 		while (menuRunning) {
 			
 			System.out.print("\nCommand: ");
-			command = sc.nextLine();
+			command = sc.nextLine().toLowerCase();
 
 			switch (command) {
-			case "getTrack":
+			case "gettrack":
 			case "gt":
 				System.out.print("URL: ");
 				new Track(sc.nextLine());
 				break;
-			case "getTrack -audio":
+			case "gettrack -audio":
 			case "gt -audio":
 				System.out.print("URL: ");
 				new Track(sc.nextLine(), "audioOnly");
 				break;
-			case "getTrack -art":
+			case "gettrack -art":
 			case "gt -art":
 				System.out.print("URL: ");
 				new Track(sc.nextLine(), "artOnly");
 				break;
-			case "getTracks":
+			case "gettracks":
 			case "gts":
 				System.out.print("URLs: ");
 				new TrackArray(sc.nextLine());
 				break;
-			case "getTracks -audio":
+			case "gettracks -audio":
 			case "gts -audio":
 				System.out.print("URLs: ");
 				new TrackArray(sc.nextLine(), "audioOnly");
 				break;
-			case "getTracks -art":
+			case "gettracks -art":
 			case "gts -art":
 				System.out.print("URLs: ");
 				new TrackArray(sc.nextLine(), "artOnly");
 				break;
-			case "getPlaylist":
-			case "gp":
+			case "getset":
+			case "gs":
 				System.out.print("URL: ");
 				new TrackPlaylist(sc.nextLine(), false);
 				break;
-			case "getAlbum":
-			case "ga":
+			case "getset -album":
+			case "gs -album":
 				System.out.print("URL: ");
 				new TrackPlaylist(sc.nextLine(), true);
 				break;

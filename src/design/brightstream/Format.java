@@ -1,10 +1,5 @@
 package design.brightstream;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,18 +33,7 @@ public class Format {
 
 	public static String help(int numberOfCommands) {
 		try {
-			File f = new File("src/design/brightstream/Commands.json");
-
-			String content = "";
-
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
-				for (String line; (line = reader.readLine()) != null;) {
-					content += line;
-				}
-			} catch (IOException e) {
-			}
-
-			JSONObject object = (JSONObject) new JSONParser().parse(content);
+			JSONObject object = (JSONObject) new JSONParser().parse(getHelpJson());
 			JSONArray array = (JSONArray) new JSONParser().parse(object.get("commands").toString());
 
 			String[][] commands = new String[numberOfCommands][4];
@@ -74,7 +58,12 @@ public class Format {
 
 			return output;
 		} catch (ParseException e) {
+			e.printStackTrace();
 			return "Commands.json missing!";
 		}
+	}
+
+	private static String getHelpJson() {
+		return "{\"commands\":[{\"fullName\":\"getTrack\", \"shortName\":\"gt\", \"description\":\"downloads one track\", \"usage\":\"{url}\"},{\"fullName\":\"getTrack -audio\", \"shortName\":\"gt -audio\", \"description\":\"downloads one track, audio only\", \"usage\":\"{url}\"},{\"fullName\":\"getTrack -art\", \"shortName\":\"gt -art\", \"description\":\"downloads one track, art only\", \"usage\":\"{url}\"},{\"fullName\":\"getTracks\", \"shortName\":\"gts\", \"description\":\"downloads more than one track\", \"usage\":\"{url}*{url}*...*{url}\"},{\"fullName\":\"getTracks -audio\", \"shortName\":\"gts -audio\", \"description\":\"downloads more than one track, audio only\", \"usage\":\"{url}*{url}*...*{url}\"},{\"fullName\":\"getTracks -art\", \"shortName\":\"gts -art\", \"description\":\"downloads more than one track, art only\", \"usage\":\"{url}*{url}*...*{url}\"},{\"fullName\":\"getSet\", \"shortName\":\"gs\", \"description\":\"downloads a set of tracks\", \"usage\":\"{url}\"},{\"fullName\":\"getSet -album\", \"shortName\":\"gs -album\", \"description\":\"downloads a set of tracks with mutual album artist, title and artwork meta\", \"usage\":\"{url}\"},{\"fullName\":\"help\", \"shortName\":\"?\", \"description\":\"shows command information\", \"usage\":\"n/a\"},{\"fullName\":\"exit\", \"shortName\":\"e\", \"description\":\"terminates the program\", \"usage\":\"n/a\"},]}";
 	}
 }
