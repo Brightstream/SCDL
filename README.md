@@ -11,7 +11,7 @@ Full Name | Short Name | Arguments | Description | Usage
 --- | --- | --- | --- | ---
 **getTrack** | gt | `-audio`, `-art` | Downloads one track | *{url}*
 **getTracks** | gts | `-audio`, `-art` | Downloads more than one track | *{url}*\**{url}*\**...*\**{url}*
-**getSet** | gs | `-playlist`, `-album` | Downloads a set of tracks | *{url}*
+**getSet** | gs | `-album` | Downloads a set of tracks | *{url}*
 **help** | ? | N/A | Shows command information | *{url}*
 **exit** | e | N/A | Terminates the program | *{url}*
 
