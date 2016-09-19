@@ -3,6 +3,17 @@ SoundCloud Downloader - A mock-up program written in Java, pulls audio, graphics
 
 ## Usage
 
+### v1.3
+
+Forget all the old instructions! The menu has been redesigned, with new commands and their respective features.
+|   	| Full Name 	| Short Name 	| Arguments         	| Description                                                                        	| Usage                 	|
+|---	|-----------	|------------	|-------------------	|------------------------------------------------------------------------------------	|-----------------------	|
+| 1 	| getTrack  	| gt         	| -audio, -art      	| Downloads one track                                                                	| {url}                 	|
+| 2 	| getTracks 	| gts        	| -audio, -art      	| Downloads more than one track                                                      	| {url}*{url}*...*{url} 	|
+| 3 	| getSet    	| gs         	| -playlist, -album 	| Downloads a set of tracks, with independent or shared album meta across all tracks 	| {url}                 	|
+| 5 	| help      	| ?          	|                   	| Shows command information                                                          	| n/a                   	|
+| 6 	| exit      	| e          	|                   	| Terminates the program                                                             	| n/a                   	|
+
 ### v1.2
 
 I'm gonna start from the group up just to recap as the program currently stands.  
